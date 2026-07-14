@@ -16,7 +16,7 @@ Object.assign(FORM_KO, {'Furfrou Natural Form':'트리미앙'});
 const ITEM_KO = {'Fairy Feather':'요정의깃털','Raichunite X':'라이츄나이트X','Raichunite Y':'라이츄나이트Y','Garchompite':'한카리아스나이트','Charizardite X':'리자몽나이트X','Charizardite Y':'리자몽나이트Y','Lucarionite':'루카리오나이트'};
 const NATURE_KO = {Jolly:'명랑',Adamant:'고집',Timid:'겁쟁이',Modest:'조심',Brave:'용감',Quiet:'냉정',Bold:'대담',Impish:'장난꾸러기',Calm:'차분',Careful:'신중',Naive:'천진난만',Hasty:'성급',Lonely:'외로움',Naughty:'개구쟁이',Mild:'온순',Rash:'덜렁',Gentle:'온화',Sassy:'건방',Relaxed:'무사태평',Lax:'촐랑',Hardy:'노력',Docile:'온순',Serious:'성실',Bashful:'수줍음',Quirky:'변덕'};
 const STAT_KO = {HP:'체력',Attack:'공격',Defense:'방어','Sp. Atk':'특수공격','Sp. Def':'특수방어',Speed:'스피드'};
-const FAVORITES = ['Empoleon','Meowscarada','Garchomp','Lucario','Mega Charizard X','Mimikyu','Emolga','Dedenne','Mega Raichu Y','Mega Greninja','Mega Froslass','Mega Lopunny','Volcarona'];
+const FAVORITES = ['Empoleon','Meowscarada','Garchomp','Lucario','Mega Charizard X','Mimikyu','Emolga','Dedenne','Mega Raichu Y','Mega Greninja','Mega Froslass','Mega Lopunny','Volcarona','Gardevoir'];
 let app = {mons:[], season:'Current', active:0, typeahead:[], speciesKo:new Map(), info:new Map()};
 const panes = [];
 

@@ -30,6 +30,7 @@ function getRows(mon){ return mon.rows || mon.fallbackRows || []; }
 function rank(mon){ const r=getRows(mon).find(x=>x.category==='move')?.column_position; return Number.isFinite(r) ? r : 9999; }
 function category(mon, name){ return getRows(mon).filter(x=>x.category===name).sort((a,b)=>(a.rank||99)-(b.rank||99)); }
 function rawBaseTotal(mon){const s=mon.stats||{};return Math.max(1,(s.hp||0)-75)+Math.max(1,(s.attack||0)-20)+Math.max(1,(s.defense||0)-20)+Math.max(1,(s.sp_attack||0)-20)+Math.max(1,(s.sp_defense||0)-20)+Math.max(1,(s.speed||0)-20);}
+function isMega(mon){ return String(mon?.kind||'').startsWith('Mega'); }
 
 function parseCsv(text){ return text.trim().split(/\r?\n/).map(line=>line.split(',')); }
 function koreanFor(en){
@@ -124,7 +125,7 @@ function home(i, push=false){
   const p=panes[i]; p.mon=null;p.input.value='';refreshClear(p);p.suggestions.innerHTML='';
   const ranked=app.mons.filter(m=>(m.kind==='Base'||m.name===m.parent)&&rank(m)<=100).sort((a,b)=>rank(a)-rank(b));
   const row=m=>`<button type="button" data-slug="${esc(m.slug)}"><span class="rank">${rank(m)===9999?'-':rank(m)}</span><span><b>${esc(m.ko)}</b><small> · ${esc(m.name)}</small><br>${m.types.map(typeChip).join('')}</span></button>`;
-  p.content.innerHTML=`<div class="empty"><h2>사용률 TOP 100</h2><p>기본 폼 기준의 라이브 인덱스입니다. 메가진화 폼은 해당 포켓몬 아래에 묶어 표시합니다.</p><div class="home-list">${ranked.map(m=>{const megas=app.mons.filter(x=>x.parent===m.parent&&x.kind==='Mega');return `<div class="rank-group">${row(m)}${megas.map(x=>`<button class="mega-child" type="button" data-slug="${esc(x.slug)}"><span>ㄴ</span><span><b>${esc(x.ko)}</b><small> · ${esc(x.name)}</small></span></button>`).join('')}</div>`}).join('')}</div></div>`;
+  p.content.innerHTML=`<div class="empty"><h2>사용률 TOP 100</h2><p>기본 폼 기준의 라이브 인덱스입니다. 메가진화 폼은 해당 포켓몬 아래에 묶어 표시합니다.</p><div class="home-list">${ranked.map(m=>{const megas=app.mons.filter(x=>x.parent===m.parent&&isMega(x));return `<div class="rank-group">${row(m)}${megas.map(x=>`<button class="mega-child" type="button" data-slug="${esc(x.slug)}"><span>ㄴ</span><span><b>${esc(x.ko)}</b><small> · ${esc(x.name)}</small></span></button>`).join('')}</div>`}).join('')}</div></div>`;
   p.content.querySelectorAll('.mega-child').forEach(button=>{const mega=app.mons.find(m=>m.slug===button.dataset.slug);const detail=button.querySelector('span:last-child');if(mega&&detail)detail.insertAdjacentHTML('beforeend',`<br>${mega.types.map(typeChip).join('')}`);});
   p.content.querySelectorAll('button').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(m=>m.slug===b.dataset.slug),true));
   if(push) saveUrl();
@@ -177,9 +178,9 @@ function attackMatchup(mon){
 }
 function natureLabel(row){ if(!row?.name) return '성격 데이터 없음'; const plus=STAT_KO[row.stat_up]||row.stat_up||'', minus=STAT_KO[row.stat_down]||row.stat_down||''; return `${NATURE_KO[row.name]||row.name}${plus?` (${minus}↓ ${plus}↑)`:''}`; }
 function megaForItem(mon,item){
-  if(mon.kind==='Mega'||!item?.name) return mon.kind==='Mega'?mon:null;
+  if(isMega(mon)||!item?.name) return isMega(mon)?mon:null;
   const root=slug(item.name).replace(/(nite|ite)(-[xy])?$/,'');
-  let candidates=app.mons.filter(x=>x.parent===mon.parent&&x.kind==='Mega');
+  let candidates=app.mons.filter(x=>x.parent===mon.parent&&isMega(x));
   if(/\sX$/i.test(item.name)) candidates=candidates.filter(x=>/ X$/i.test(x.name));
   if(/\sY$/i.test(item.name)) candidates=candidates.filter(x=>/ Y$/i.test(x.name));
   return candidates.find(x=>slug(x.parent).includes(root)||root.includes(slug(x.parent)))||null;
@@ -205,7 +206,8 @@ function speedRanking(mon){
   return `<section class="card"><h3>스피드 순위 · ${speed}</h3><div class="speedlist">${list.map(x=>`<div class="${x===mon?'current':''}">${esc(x.ko)}<span>${x.stats.speed}</span></div>`).join('')}</div></section>`;
 }
 function centerSpeedRanking(p){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{const list=p.content.querySelector('.speedlist'),current=list?.querySelector('.current');if(!list||!current)return;const top=current.getBoundingClientRect().top-list.getBoundingClientRect().top+list.scrollTop;list.scrollTop=Math.max(0,top-(list.clientHeight-current.offsetHeight)/2);}));
+  const align=()=>{const list=p.content.querySelector('.speedlist'),current=list?.querySelector('.current');if(!list||!current)return;const top=current.offsetTop-list.offsetTop;list.scrollTop=Math.max(0,top-(list.clientHeight-current.offsetHeight)/2);};
+  requestAnimationFrame(()=>requestAnimationFrame(align)); setTimeout(align,80);
 }
 function draw(i){
   const p=panes[i], m=p.mon; if(!m)return; const s=m.stats, total=Object.values(s).reduce((a,b)=>a+b,0), rawTotal=rawBaseTotal(m), r=rank(m);
@@ -213,7 +215,7 @@ function draw(i){
   const attacks=category(m,'move').slice(0,10).map(x=>monAttack(m,x)).join('')||'<small>공개된 기술 통계가 없습니다.</small>';
   const parentText=m.parent!==m.name ? `기반: ${koreanFor(m.parent)} · ` : '';
   const liveText=m.liveError ? '이 폼의 개별 API 응답이 없어 인덱스 요약값을 표시합니다.' : '현재 시즌 싱글 데이터';
-  const megas=m.kind!=='Mega'?app.mons.filter(x=>x.parent===m.parent&&x.kind==='Mega'):[];
+  const megas=!isMega(m)?app.mons.filter(x=>x.parent===m.parent&&isMega(x)):[];
   p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${r===9999?'-':r+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>Champions 기본 능력치 · 합계 ${total}</h3>${statRows}<p class="stat-note">참고 · 원본 종족값 합계 ${rawTotal}</p></section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>공격 상성 · 채용 기술 TOP 10</h3>${attackMatchup(m)}</section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
   p.content.querySelectorAll('.mega-link').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(x=>x.slug===b.dataset.slug),true));
   centerSpeedRanking(p); wireSpeed(p,m);

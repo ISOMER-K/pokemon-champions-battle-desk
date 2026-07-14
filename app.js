@@ -156,6 +156,11 @@ function usageRows(mon,cat,limit,type=false){
   const rows=category(mon,cat).slice(0,limit);
   return rows.length?rows.map(x=>`<div class="usage-row"><span class="usage-rank">${x.rank}</span><b>${esc(mon.translate.get(x.name)||x.name)}</b>${type&&mon.moveTypes.get(x.name)?typeChip(mon.moveTypes.get(x.name)):''}<span>${esc(x.percentage||'')}</span></div>`).join(''):'<small>현재 공개된 사용 데이터가 없습니다.</small>';
 }
+function attackMatchup(mon){
+  const moves=category(mon,'move').slice(0,10);
+  if(!moves.length) return '<small>현재 공개된 기술 통계가 없습니다.</small>';
+  return `<div class="attack-grid">${moves.map(row=>{const type=mon.moveTypes.get(row.name), targets=type?TYPES.filter(def=>(EFFECT[type]?.[def]??1)>=2):[];return `<article class="attack-card"><div><b>${esc(mon.translate.get(row.name)||row.name)}</b>${type?typeChip(type):'<span class="type">타입 조회 중</span>'}</div><small>2배 이상 유효</small><div class="attack-targets">${targets.map(typeChip).join('')||'<small>없음</small>'}</div></article>`;}).join('')}</div>`;
+}
 function natureLabel(row){ if(!row?.name) return '성격 데이터 없음'; const plus=STAT_KO[row.stat_up]||row.stat_up||'', minus=STAT_KO[row.stat_down]||row.stat_down||''; return `${NATURE_KO[row.name]||row.name}${plus?` (${minus}↓ ${plus}↑)`:''}`; }
 function megaForItem(mon,item){
   if(mon.kind==='Mega'||!item?.name) return mon.kind==='Mega'?mon:null;
@@ -195,7 +200,7 @@ function draw(i){
   const parentText=m.parent!==m.name ? `기반: ${koreanFor(m.parent)} · ` : '';
   const liveText=m.liveError ? '이 폼의 개별 API 응답이 없어 인덱스 요약값을 표시합니다.' : '현재 시즌 싱글 데이터';
   const megas=m.kind!=='Mega'?app.mons.filter(x=>x.parent===m.parent&&x.kind==='Mega'):[];
-  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${r===9999?'-':r+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>종족값 · 합계 ${total}</h3>${statRows}</section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
+  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${r===9999?'-':r+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>종족값 · 합계 ${total}</h3>${statRows}</section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>공격 상성 · 채용 기술 TOP 10</h3>${attackMatchup(m)}</section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
   p.content.querySelectorAll('.mega-link').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(x=>x.slug===b.dataset.slug),true));
   centerSpeedRanking(p); wireSpeed(p,m);
 }

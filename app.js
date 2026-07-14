@@ -82,9 +82,9 @@ function saveUrl(){
 }
 function renderMascots(){
   const host=document.querySelector('#mascots'); host.innerHTML='';
-  FAVORITES.map(findMon).filter(Boolean).forEach(mon=>{
+  FAVORITES.map(findMon).filter(Boolean).forEach((mon,index)=>{
     const b=document.createElement('button'); b.className='mascot-button'; b.title=mon.ko; b.innerHTML=`<img src="${asset(mon.image)}" alt="${esc(mon.ko)}">`;
-    b.onclick=()=>openMon(app.active,mon,true); host.append(b);
+    b.dataset.pane=index<7?'0':'1'; b.onclick=()=>openMon(index<7?0:1,mon,true); host.append(b);
   });
 }
 function makePane(i){

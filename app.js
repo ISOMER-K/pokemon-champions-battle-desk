@@ -66,7 +66,7 @@ function normalise(index){
       const kind=form.form_kind||'Base';
       if(COSMETIC_FORM_KEEP[entry.name] && COSMETIC_FORM_KEEP[entry.name]!==name) continue;
       const stats={hp:+form.hp||0,attack:+form.attack||0,defense:+form.defense||0,sp_attack:+form.sp_attack||0,sp_defense:+form.sp_defense||0,speed:+form.speed||0};
-      result.push({name, ko:koreanFor(name), parent:kind.startsWith('Mega')?canonicalBase:entry.name, kind, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map(), abilityDescriptions:new Map()});
+      result.push({name, ko:koreanFor(name), parent:kind.startsWith('Mega')?canonicalBase:entry.name, kind, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], abilities:String(form.abilities||'').split('|').map(value=>value.trim()).filter(Boolean), fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map(), abilityDescriptions:new Map()});
     }
   }
   const bestByName=new Map();
@@ -163,11 +163,11 @@ async function hydrate(mon){
     mon.rows=part.rows||data.rows||[];
     if(!mon.rows.length) throw Error('empty');
   }catch(err){ mon.liveError=true; mon.rows=mon.fallbackRows; }
-  const moves=category(mon,'move').slice(0,10), items=category(mon,'held_item').slice(0,5), abilities=category(mon,'ability').slice(0,5);
+  const moves=category(mon,'move').slice(0,10), items=category(mon,'held_item').slice(0,5), abilities=[...new Set([...category(mon,'ability').slice(0,5).map(row=>row.name),...mon.abilities])];
   await Promise.all([
     ...moves.map(x=>loadPoke('move',x.name).then(v=>{mon.translate.set(x.name,v.ko);mon.moveTypes.set(x.name,v.type);})),
     ...items.map(x=>loadPoke('item',x.name).then(v=>mon.translate.set(x.name,v.ko))),
-    ...abilities.map(x=>loadPoke('ability',x.name).then(v=>{mon.translate.set(x.name,v.ko);mon.abilityDescriptions.set(x.name,v.description);})),
+    ...abilities.map(name=>loadPoke('ability',name).then(v=>{mon.translate.set(name,v.ko);mon.abilityDescriptions.set(name,v.description);})),
   ]);
   mon.hydrated=true;
 }
@@ -201,7 +201,10 @@ function usageRows(mon,cat,limit,type=false){
   return rows.length?rows.map(x=>`<div class="usage-row"><span class="usage-rank">${x.rank}</span><b>${esc(source.translate.get(x.name)||mon.translate.get(x.name)||ITEM_KO[x.name]||x.name)}</b>${type&&source.moveTypes.get(x.name)?typeChip(source.moveTypes.get(x.name)):''}<span>${esc(x.percentage||'')}</span></div>`).join(''):'<small>현재 공개된 사용 데이터가 없습니다.</small>';
 }
 function abilityRows(mon){
-  const rows=category(mon,'ability').slice(0,5);
+  // The battle endpoint either falls back to the base form or has no row for a
+  // Mega form. Its ability is deterministic after Mega Evolution, so use the
+  // authoritative form field instead of incorrectly showing the base usage.
+  const rows=isMega(mon)?mon.abilities.map((name,index)=>({name,rank:index+1,percentage:'100%'})):category(mon,'ability').slice(0,5);
   return rows.length?rows.map(row=>{const name=mon.translate.get(row.name)||row.name, description=mon.abilityDescriptions.get(row.name)||'';const hint=description?` title="${esc(description)}" aria-label="${esc(`${name}: ${description}`)}"`:'';return `<div class="usage-row ability-row"${hint}><span class="usage-rank">${row.rank}</span><b>${esc(name)}</b><span>${esc(row.percentage||'')}</span></div>`;}).join(''):'<small>현재 공개된 특성 사용 데이터가 없습니다.</small>';
 }
 function attackMatchup(mon){

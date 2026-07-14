@@ -25,6 +25,11 @@ function battlePart(x){ return x?.Current?.Singles || x?.['Current Singles'] || 
 function getRows(mon){ return mon.rows || mon.fallbackRows || []; }
 function rank(mon){ const r=getRows(mon).find(x=>x.category==='move')?.column_position; return Number.isFinite(r) ? r : 9999; }
 function category(mon, name){ return getRows(mon).filter(x=>x.category===name).sort((a,b)=>(a.rank||99)-(b.rank||99)); }
+function baseStatsOf(mon){
+  if(mon.baseStats) return mon.baseStats;
+  const s=mon.stats||{};
+  return {hp:Math.max(1,(s.hp||0)-75),attack:Math.max(1,(s.attack||0)-20),defense:Math.max(1,(s.defense||0)-20),sp_attack:Math.max(1,(s.sp_attack||0)-20),sp_defense:Math.max(1,(s.sp_defense||0)-20),speed:Math.max(1,(s.speed||0)-20)};
+}
 
 function parseCsv(text){ return text.trim().split(/\r?\n/).map(line=>line.split(',')); }
 function koreanFor(en){
@@ -187,14 +192,14 @@ function sample(mon){
   return `<section class="detail-samples"><h3>대표 실전 샘플</h3><p class="sample-note">성격·노력치·도구의 개별 채용률을 조합한 참고용 5개 예시입니다.</p><div class="sample-grid">${cards}</div></section>`;
 }
 function speedRanking(mon){
-  const list=[...app.mons].sort((a,b)=>(b.stats.speed||0)-(a.stats.speed||0));
-  return `<section class="card"><h3>스피드 순위 · ${mon.stats.speed}</h3><div class="speedlist">${list.map(x=>`<div class="${x===mon?'current':''}">${esc(x.ko)}<span>${x.stats.speed}</span></div>`).join('')}</div></section>`;
+  const list=[...app.mons].sort((a,b)=>baseStatsOf(b).speed-baseStatsOf(a).speed), speed=baseStatsOf(mon).speed;
+  return `<section class="card"><h3>스피드 순위 · ${speed}</h3><div class="speedlist">${list.map(x=>`<div class="${x===mon?'current':''}">${esc(x.ko)}<span>${baseStatsOf(x).speed}</span></div>`).join('')}</div></section>`;
 }
 function centerSpeedRanking(p){
   requestAnimationFrame(()=>{const list=p.content.querySelector('.speedlist'), current=list?.querySelector('.current');if(list&&current) list.scrollTop=current.offsetTop-(list.clientHeight-current.offsetHeight)/2;});
 }
 function draw(i){
-  const p=panes[i], m=p.mon; if(!m)return; const s=m.stats, total=Object.values(s).reduce((a,b)=>a+b,0), r=rank(m);
+  const p=panes[i], m=p.mon; if(!m)return; const s=baseStatsOf(m), total=Object.values(s).reduce((a,b)=>a+b,0), r=rank(m);
   const statRows=[['HP','hp'],['공격','attack'],['방어','defense'],['특수공격','sp_attack'],['특수방어','sp_defense'],['스피드','speed']].map(([label,k])=>`<div class="stat"><span>${label}</span><div class="bar"><i style="width:${Math.min(100,s[k]/2)}%"></i></div><b>${s[k]}</b></div>`).join('');
   const attacks=category(m,'move').slice(0,10).map(x=>monAttack(m,x)).join('')||'<small>공개된 기술 통계가 없습니다.</small>';
   const parentText=m.parent!==m.name ? `기반: ${koreanFor(m.parent)} · ` : '';

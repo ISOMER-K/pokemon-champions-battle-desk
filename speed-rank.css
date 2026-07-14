@@ -7,4 +7,5 @@
 .rank-slider input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #fff0a4;border-radius:50%;background:#f6cb43;box-shadow:0 1px 0 #213657}
 .rank-ticks{position:absolute;z-index:1;right:8px;left:8px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
 .rank-ticks i{width:8px;height:8px;border:2px solid #9ec0e2;border-radius:50%;background:#10284b;box-shadow:0 0 0 1px #0a1b31}
+.rank-ticks i:nth-child(7){width:11px;height:11px;border-color:#fff0a4;background:#f6cb43;box-shadow:0 0 0 2px #203d5a,0 0 8px #f6cb4399}
 .speedcalc .stage-label,.speedcalc .battle-speed output{min-width:33px;color:#f6cb43!important;font:800 22px Jua,sans-serif!important;font-variant-numeric:tabular-nums;text-align:center;text-shadow:1px 2px #071326}

@@ -123,11 +123,13 @@ function suggest(i){
 function highlightSuggestion(p){ p.suggestions.querySelectorAll('button').forEach((b,n)=>b.classList.toggle('suggestion-active',n===p.suggestionIndex)); }
 function home(i, push=false){
   const p=panes[i]; p.mon=null;p.input.value='';refreshClear(p);p.suggestions.innerHTML='';
-  const ranked=app.mons.filter(m=>(m.kind==='Base'||m.name===m.parent)&&rank(m)<=100).sort((a,b)=>rank(a)-rank(b));
-  const row=m=>`<button type="button" data-slug="${esc(m.slug)}"><span class="rank">${rank(m)===9999?'-':rank(m)}</span><span><b>${esc(m.ko)}</b><small> · ${esc(m.name)}</small><br>${m.types.map(typeChip).join('')}</span></button>`;
-  p.content.innerHTML=`<div class="empty"><h2>사용률 TOP 100</h2><p>기본 폼 기준의 라이브 인덱스입니다. 메가진화 폼은 해당 포켓몬 아래에 묶어 표시합니다.</p><div class="home-list">${ranked.map(m=>{const megas=app.mons.filter(x=>x.parent===m.parent&&isMega(x));return `<div class="rank-group">${row(m)}${megas.map(x=>`<button class="mega-child" type="button" data-slug="${esc(x.slug)}"><span>ㄴ</span><span><b>${esc(x.ko)}</b><small> · ${esc(x.name)}</small></span></button>`).join('')}</div>`}).join('')}</div></div>`;
-  p.content.querySelectorAll('.mega-child').forEach(button=>{const mega=app.mons.find(m=>m.slug===button.dataset.slug);const detail=button.querySelector('span:last-child');if(mega&&detail)detail.insertAdjacentHTML('beforeend',`<br>${mega.types.map(typeChip).join('')}`);});
-  p.content.querySelectorAll('button').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(m=>m.slug===b.dataset.slug),true));
+  const allRanked=app.mons.filter(m=>(m.kind==='Base'||m.name===m.parent)&&rank(m)!==9999).sort((a,b)=>rank(a)-rank(b));
+  const ranked=(p.showAll?allRanked:allRanked.filter(m=>rank(m)<=100));
+  const row=m=>`<button type="button" data-slug="${esc(m.slug)}"><span class="rank">${rank(m)}</span><span class="home-copy"><b>${esc(m.ko)}</b><small> · ${esc(m.name)}</small><br>${m.types.map(typeChip).join('')}</span><img class="home-sprite" src="${asset(m.image)}" alt=""></button>`;
+  const megaRow=x=>`<button class="mega-child" type="button" data-slug="${esc(x.slug)}"><span>ㄴ</span><span class="home-copy"><b>${esc(x.ko)}</b><small> · ${esc(x.name)}</small><br>${x.types.map(typeChip).join('')}</span><img class="home-sprite" src="${asset(x.image)}" alt=""></button>`;
+  p.content.innerHTML=`<div class="empty"><h2>${p.showAll?'전체 사용률 순위':'사용률 TOP 100'}</h2><p>기본 폼 기준의 라이브 인덱스입니다. 메가진화 폼은 해당 포켓몬 아래에 묶어 표시합니다.</p><div class="home-list">${ranked.map(m=>{const megas=app.mons.filter(x=>x.parent===m.parent&&isMega(x));return `<div class="rank-group">${row(m)}${megas.map(megaRow).join('')}</div>`}).join('')}</div><button class="home-more" type="button">${p.showAll?'접기 −':'더보기 +'}</button></div>`;
+  p.content.querySelectorAll('button[data-slug]').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(m=>m.slug===b.dataset.slug),true));
+  p.content.querySelector('.home-more').onclick=()=>{p.showAll=!p.showAll;home(i,false);};
   if(push) saveUrl();
 }
 async function loadPoke(kind,name){
@@ -210,7 +212,7 @@ function sample(mon){
     const statBars=statKeys.map(([label,key])=>`<div><span>${label}</span><i style="width:${Math.min(100,final[key]/2)}%"></i><b>${final[key]}</b></div>`).join('');
     return `<article class="sample-card"><h4>${esc(subject.ko)}${subject!==mon?' <small>(메가진화)</small>':''}<small> 조합 ${i+1}</small></h4>${subject.types.map(typeChip).join('')}<p><b>${esc(natureLabel(nature))}</b> · ${esc(item?mon.translate.get(item.name)||item.name:'-')}</p><small>${esc(effortText(effort))}</small><div class="sample-stats">${statBars}</div><div class="sample-moves">${moves.map(x=>esc(mon.translate.get(x.name)||x.name)).join(' · ')||'기술 데이터 없음'}</div></article>`;
   }).join('');
-  return `<section class="detail-samples"><h3>대표 실전 샘플</h3><p class="sample-note">성격·노력치·도구의 개별 채용률을 조합한 참고용 5개 예시입니다.</p><div class="sample-grid">${cards}</div></section>`;
+  return `<section class="detail-samples"><h3>대표 실전 샘플</h3><p class="sample-note">※ API가 제공하는 성격·노력치·도구·기술의 개별 채용률을 조합한 참고용 가상 샘플입니다. 실제로 함께 사용된 세트 통계는 제공되지 않습니다.</p><div class="sample-grid">${cards}</div></section>`;
 }
 function speedRanking(mon){
   const list=[...app.mons].sort((a,b)=>(b.stats.speed||0)-(a.stats.speed||0)), speed=mon.stats.speed;

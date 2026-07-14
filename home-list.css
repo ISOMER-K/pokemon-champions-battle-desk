@@ -1,0 +1,6 @@
+.home-list button{position:relative;padding-right:53px!important;min-height:49px}
+.home-list .home-copy{min-width:0}
+.home-list .home-sprite{position:absolute;right:7px;top:50%;width:39px;height:39px;object-fit:contain;image-rendering:pixelated;pointer-events:none;transform:translateY(-50%);filter:drop-shadow(1px 2px 0 #091629)}
+.home-list .mega-child .home-sprite{width:32px;height:32px;opacity:.88}
+.home-more{display:block;width:100%;margin:14px 0 3px;padding:10px;border:2px solid #f6cb43;border-radius:10px;background:linear-gradient(135deg,#20446b,#513c78);color:#fff4b4;cursor:pointer;font:15px Jua,sans-serif;box-shadow:2px 3px 0 #17213a}
+.home-more:hover{transform:translateY(-1px);border-color:#ffe98d;background:#31577b;color:#fff}

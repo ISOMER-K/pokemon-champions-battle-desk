@@ -11,6 +11,7 @@ const FORM_KO = {
 };
 Object.assign(FORM_KO, {'Alcremie':'마휘핑','Alcremie Vanilla Cream':'마휘핑(바닐라크림)','Alcremie Ruby Cream':'마휘핑(루비크림)','Alcremie Matcha Cream':'마휘핑(말차크림)','Alcremie Mint Cream':'마휘핑(민트크림)','Alcremie Lemon Cream':'마휘핑(레몬크림)','Alcremie Salted Cream':'마휘핑(솔티드크림)','Alcremie Ruby Swirl':'마휘핑(루비스월)','Alcremie Caramel Swirl':'마휘핑(카라멜스월)','Alcremie Rainbow Swirl':'마휘핑(레인보우스월)','Vivillon Fancy Pattern':'비비용'});
 const COSMETIC_FORM_KEEP = {'Alcremie':'Alcremie','Florges':'Florges Red Flower','Furfrou':'Furfrou Natural Form','Maushold':'Maushold','Morpeko':'Morpeko','Vivillon':'Vivillon Fancy Pattern'};
+Object.assign(COSMETIC_FORM_KEEP, {'Florges Red Flower':'Florges Red Flower','Furfrou Natural Form':'Furfrou Natural Form','Vivillon Fancy Pattern':'Vivillon Fancy Pattern'});
 Object.assign(FORM_KO, {'Furfrou Natural Form':'트리미앙'});
 const ITEM_KO = {'Fairy Feather':'요정의깃털','Raichunite X':'라이츄나이트X','Raichunite Y':'라이츄나이트Y','Garchompite':'한카리아스나이트','Charizardite X':'리자몽나이트X','Charizardite Y':'리자몽나이트Y','Lucarionite':'루카리오나이트'};
 const NATURE_KO = {Jolly:'명랑',Adamant:'고집',Timid:'겁쟁이',Modest:'조심',Brave:'용감',Quiet:'냉정',Bold:'대담',Impish:'장난꾸러기',Calm:'차분',Careful:'신중',Naive:'천진난만',Hasty:'성급',Lonely:'외로움',Naughty:'개구쟁이',Mild:'온순',Rash:'덜렁',Gentle:'온화',Sassy:'건방',Relaxed:'무사태평',Lax:'촐랑',Hardy:'노력',Docile:'온순',Serious:'성실',Bashful:'수줍음',Quirky:'변덕'};
@@ -59,8 +60,13 @@ function normalise(index){
       result.push({name, ko:koreanFor(name), parent:entry.name, kind:form.form_kind||'Base', slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map()});
     }
   }
-  const seen=new Set();
-  return result.filter(m=>!seen.has(m.name) && seen.add(m.name));
+  const bestByName=new Map();
+  for(const mon of result){
+    const old=bestByName.get(mon.name);
+    const priority=x=>(x.name===x.parent?4:0)+(x.kind==='Base'?1:0);
+    if(!old||priority(mon)>priority(old)) bestByName.set(mon.name,mon);
+  }
+  return [...bestByName.values()];
 }
 function findMon(q){
   const needle=String(q||'').trim().toLowerCase();
@@ -114,7 +120,7 @@ function suggest(i){
 function highlightSuggestion(p){ p.suggestions.querySelectorAll('button').forEach((b,n)=>b.classList.toggle('suggestion-active',n===p.suggestionIndex)); }
 function home(i, push=false){
   const p=panes[i]; p.mon=null;p.input.value='';refreshClear(p);p.suggestions.innerHTML='';
-  const ranked=app.mons.filter(m=>m.kind==='Base'||m.name===m.parent).sort((a,b)=>rank(a)-rank(b)).slice(0,100);
+  const ranked=app.mons.filter(m=>(m.kind==='Base'||m.name===m.parent)&&rank(m)<=100).sort((a,b)=>rank(a)-rank(b));
   const row=m=>`<button type="button" data-slug="${esc(m.slug)}"><span class="rank">${rank(m)===9999?'-':rank(m)}</span><span><b>${esc(m.ko)}</b><small> · ${esc(m.name)}</small><br>${m.types.map(typeChip).join('')}</span></button>`;
   p.content.innerHTML=`<div class="empty"><h2>사용률 TOP 100</h2><p>기본 폼 기준의 라이브 인덱스입니다. 메가진화 폼은 해당 포켓몬 아래에 묶어 표시합니다.</p><div class="home-list">${ranked.map(m=>{const megas=app.mons.filter(x=>x.parent===m.parent&&x.kind==='Mega');return `<div class="rank-group">${row(m)}${megas.map(x=>`<button class="mega-child" type="button" data-slug="${esc(x.slug)}"><span>ㄴ</span><span><b>${esc(x.ko)}</b><small> · ${esc(x.name)}</small></span></button>`).join('')}</div>`}).join('')}</div></div>`;
   p.content.querySelectorAll('.mega-child').forEach(button=>{const mega=app.mons.find(m=>m.slug===button.dataset.slug);const detail=button.querySelector('span:last-child');if(mega&&detail)detail.insertAdjacentHTML('beforeend',`<br>${mega.types.map(typeChip).join('')}`);});

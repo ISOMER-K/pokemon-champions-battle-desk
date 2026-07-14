@@ -1,0 +1,10 @@
+.rank-slider{position:relative;display:flex;flex:1;height:24px;align-items:center;min-width:150px}
+.rank-slider::before{content:'';position:absolute;right:8px;left:8px;height:5px;border-radius:99px;background:#0a1b31;box-shadow:inset 0 1px 3px #0008}
+.rank-slider input[type=range]{position:relative;z-index:2;width:100%;margin:0;background:transparent!important;appearance:none;-webkit-appearance:none;accent-color:var(--gold,#f6cb43)}
+.rank-slider input[type=range]::-webkit-slider-runnable-track{height:5px;background:transparent}
+.rank-slider input[type=range]::-webkit-slider-thumb{width:17px;height:17px;margin-top:-6px;border:2px solid #fff0a4;border-radius:50%;background:#f6cb43;box-shadow:0 1px 0 #213657;appearance:none;-webkit-appearance:none}
+.rank-slider input[type=range]::-moz-range-track{height:5px;background:transparent}
+.rank-slider input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #fff0a4;border-radius:50%;background:#f6cb43;box-shadow:0 1px 0 #213657}
+.rank-ticks{position:absolute;z-index:1;right:8px;left:8px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+.rank-ticks i{width:8px;height:8px;border:2px solid #9ec0e2;border-radius:50%;background:#10284b;box-shadow:0 0 0 1px #0a1b31}
+.speedcalc .stage-label,.speedcalc .battle-speed output{min-width:33px;color:#f6cb43!important;font:800 22px Jua,sans-serif!important;font-variant-numeric:tabular-nums;text-align:center;text-shadow:1px 2px #071326}

@@ -132,6 +132,11 @@ function home(i, push=false){
   p.content.querySelector('.home-more').onclick=()=>{p.showAll=!p.showAll;home(i,false);};
   if(push) saveUrl();
 }
+document.addEventListener('battle-desk-home',()=>{
+  if(!panes.length)return;
+  panes.forEach((pane,index)=>{pane.showAll=false;home(index,false);pane.node.scrollTop=0;});
+  app.active=0;history.pushState({},'',location.pathname);window.scrollTo({top:0,behavior:'smooth'});
+});
 async function loadPoke(kind,name){
   const key=`${kind}:${name}`; if(app.info.has(key)) return app.info.get(key);
   const manual=kind==='item'&&ITEM_KO[name];

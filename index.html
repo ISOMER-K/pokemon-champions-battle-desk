@@ -16,6 +16,8 @@
 <link rel="stylesheet" href="theme-banner-cartridge.css?v=final-banner-position-20260715">
   <link rel="stylesheet" href="theme-contrast.css?v=game-banner-20260715">
   <link rel="stylesheet" href="speed-rank-links.css">
+  <link rel="stylesheet" href="panel-navigation.css">
+  <link rel="stylesheet" href="mobile-desk.css">
 </head>
 <body>
   <header>
@@ -27,6 +29,7 @@
     <nav id="mascots" aria-label="대표 포켓몬 바로가기"></nav>
     <small id="stamp">1.0.1 Beta</small>
   </header>
+  <nav id="mobile-pane-switcher" aria-label="모바일 비교 패널 전환"><button type="button" data-pane="0">왼쪽 비교</button><button type="button" data-pane="1">오른쪽 비교</button></nav>
   <main id="panes"></main>
   <footer class="site-footer">
     <span>© 2026 <a href="https://github.com/ISOMER-K" target="_blank" rel="noreferrer">ISOMER-K</a> · Code: MIT</span>
@@ -36,15 +39,17 @@
   </footer>
   <template id="pane-template">
     <section class="pane">
-      <div class="toolbar"><button class="home-button" type="button">⌂ HOME</button></div>
+      <div class="toolbar"><button class="home-button" type="button">⌂ HOME</button><button class="history-button history-back" type="button" title="이전 화면" aria-label="이전 화면">‹</button><button class="history-button history-forward" type="button" title="다음 화면" aria-label="다음 화면">›</button></div>
       <div class="search"><span class="search-icon" aria-hidden="true">⌕</span><input placeholder="포켓몬 검색 (예: ㄱㄷ, 한카리아스)" autocomplete="off"><button class="clear-search" type="button" aria-label="검색어 지우기" title="검색어 지우기" hidden>×</button><div class="suggestions"></div></div>
       <div class="content"></div>
     </section>
   </template>
-  <script src="app.js?v=type-palette-20260715"></script>
+  <script src="app.js?v=nav-mobile-20260715"></script>
   <script src="release-badge.js"></script>
   <script src="type-palette.js"></script>
   <script src="speed-rank-ui.js"></script>
   <script src="stat-reference.js"></script>
+  <script src="panel-navigation.js"></script>
+  <script src="mobile-desk.js"></script>
 </body>
 </html>

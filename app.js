@@ -66,7 +66,7 @@ function normalise(index){
       const kind=form.form_kind||'Base';
       if(COSMETIC_FORM_KEEP[entry.name] && COSMETIC_FORM_KEEP[entry.name]!==name) continue;
       const stats={hp:+form.hp||0,attack:+form.attack||0,defense:+form.defense||0,sp_attack:+form.sp_attack||0,sp_defense:+form.sp_defense||0,speed:+form.speed||0};
-      result.push({name, ko:koreanFor(name), parent:kind.startsWith('Mega')?canonicalBase:entry.name, kind, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], abilities:String(form.abilities||'').split('|').map(value=>value.trim()).filter(Boolean), fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map(), abilityDescriptions:new Map()});
+      result.push({name, ko:koreanFor(name), parent:kind.startsWith('Mega')?canonicalBase:entry.name, kind, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, abilities:String(form.abilities||'').split('|').map(value=>value.trim()).filter(Boolean), fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map(), abilityDescriptions:new Map()});
     }
   }
   const bestByName=new Map();

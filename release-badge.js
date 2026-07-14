@@ -1,0 +1,1 @@
+(()=>{const stamp=document.querySelector('#stamp');if(!stamp)return;const render=()=>{if(stamp.textContent!=='1.0.1 Beta')stamp.textContent='1.0.1 Beta';};render();new MutationObserver(render).observe(stamp,{childList:true,characterData:true,subtree:true});})();

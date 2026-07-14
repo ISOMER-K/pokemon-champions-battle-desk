@@ -51,7 +51,7 @@ function normalise(index){
       if(!form?.form_name) continue;
       const name=form.form_name;
       const stats={hp:+form.hp||0,attack:+form.attack||0,defense:+form.defense||0,sp_attack:+form.sp_attack||0,sp_defense:+form.sp_defense||0,speed:+form.speed||0};
-      result.push({name, ko:koreanFor(name), parent:entry.name, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map()});
+      result.push({name, ko:koreanFor(name), parent:entry.name, kind:form.form_kind||'Base', slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map()});
     }
   }
   const seen=new Set();
@@ -109,8 +109,9 @@ function suggest(i){
 function highlightSuggestion(p){ p.suggestions.querySelectorAll('button').forEach((b,n)=>b.classList.toggle('suggestion-active',n===p.suggestionIndex)); }
 function home(i, push=false){
   const p=panes[i]; p.mon=null;p.input.value='';refreshClear(p);p.suggestions.innerHTML='';
-  const ranked=app.mons.filter(m=>m.name===m.parent).sort((a,b)=>rank(a)-rank(b)).slice(0,100);
-  p.content.innerHTML=`<div class="empty"><h2>사용률 TOP 100</h2><p>기본 폼 기준의 라이브 인덱스입니다. 포켓몬을 열면 해당 폼의 싱글 배틀 데이터를 직접 새로 불러옵니다.</p><div class="home-list">${ranked.map(m=>`<button type="button" data-slug="${esc(m.slug)}"><span class="rank">${rank(m)===9999?'-':rank(m)}</span><span><b>${esc(m.ko)}</b><small> · ${esc(m.name)}</small><br>${m.types.map(typeChip).join('')}</span></button>`).join('')}</div></div>`;
+  const ranked=app.mons.filter(m=>m.kind==='Base'||m.name===m.parent).sort((a,b)=>rank(a)-rank(b)).slice(0,100);
+  const row=m=>`<button type="button" data-slug="${esc(m.slug)}"><span class="rank">${rank(m)===9999?'-':rank(m)}</span><span><b>${esc(m.ko)}</b><small> · ${esc(m.name)}</small><br>${m.types.map(typeChip).join('')}</span></button>`;
+  p.content.innerHTML=`<div class="empty"><h2>사용률 TOP 100</h2><p>기본 폼 기준의 라이브 인덱스입니다. 메가진화 폼은 해당 포켓몬 아래에 묶어 표시합니다.</p><div class="home-list">${ranked.map(m=>{const megas=app.mons.filter(x=>x.parent===m.parent&&x.kind==='Mega');return `<div class="rank-group">${row(m)}${megas.map(x=>`<button class="mega-child" type="button" data-slug="${esc(x.slug)}"><span>ㄴ</span><span><b>${esc(x.ko)}</b><small> · ${esc(x.name)}</small></span></button>`).join('')}</div>`}).join('')}</div></div>`;
   p.content.querySelectorAll('button').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(m=>m.slug===b.dataset.slug),true));
   if(push) saveUrl();
 }
@@ -156,10 +157,33 @@ function usageRows(mon,cat,limit,type=false){
   return rows.length?rows.map(x=>`<div class="usage-row"><span class="usage-rank">${x.rank}</span><b>${esc(mon.translate.get(x.name)||x.name)}</b>${type&&mon.moveTypes.get(x.name)?typeChip(mon.moveTypes.get(x.name)):''}<span>${esc(x.percentage||'')}</span></div>`).join(''):'<small>현재 공개된 사용 데이터가 없습니다.</small>';
 }
 function natureLabel(row){ if(!row?.name) return '성격 데이터 없음'; const plus=STAT_KO[row.stat_up]||row.stat_up||'', minus=STAT_KO[row.stat_down]||row.stat_down||''; return `${NATURE_KO[row.name]||row.name}${plus?` (${minus}↓ ${plus}↑)`:''}`; }
+function megaForItem(mon,item){
+  if(mon.kind==='Mega'||!item?.name) return mon.kind==='Mega'?mon:null;
+  const root=slug(item.name).replace(/(nite|ite)(-[xy])?$/,'');
+  let candidates=app.mons.filter(x=>x.parent===mon.parent&&x.kind==='Mega');
+  if(/\sX$/i.test(item.name)) candidates=candidates.filter(x=>/ X$/i.test(x.name));
+  if(/\sY$/i.test(item.name)) candidates=candidates.filter(x=>/ Y$/i.test(x.name));
+  return candidates.find(x=>slug(x.parent).includes(root)||root.includes(slug(x.parent)))||null;
+}
 function sample(mon){
-  const nature=category(mon,'stat_alignment')[0], effort=category(mon,'stat_points')[0], item=category(mon,'held_item')[0], moves=category(mon,'move').slice(0,4);
-  const e=effort?`HP ${effort.hp_points??'-'} / A ${effort.attack_points??'-'} / B ${effort.defense_points??'-'} / C ${effort.sp_atk_points??'-'} / D ${effort.sp_def_points??'-'} / S ${effort.speed_points??'-'}`:'노력치 데이터 없음';
-  return `<div class="card sample"><h3>대표 실전 샘플 · 라이브 사용률 1위 조합</h3><p><b>${esc(natureLabel(nature))}</b> · ${esc(e)}</p><p>도구: <b>${esc(item?mon.translate.get(item.name)||item.name:'-')}</b> ${item?esc(item.percentage):''}</p><p>기술: ${moves.map(x=>`<b>${esc(mon.translate.get(x.name)||x.name)}</b>`).join(' · ')||'-'}</p><small>표시값은 현재 API가 제공하는 통계 상위 항목을 조합한 참고용 샘플입니다.</small></div>`;
+  const natures=category(mon,'stat_alignment').slice(0,5), efforts=category(mon,'stat_points').slice(0,5), items=category(mon,'held_item').slice(0,5), moves=category(mon,'move').slice(0,4);
+  const statKeys=[['HP','hp'],['공격','attack'],['방어','defense'],['특공','sp_attack'],['특방','sp_defense'],['스피드','speed']];
+  const effortText=e=>e?`HP ${e.hp_points??0} / 공 ${e.attack_points??0} / 방 ${e.defense_points??0} / 특공 ${e.sp_atk_points??0} / 특방 ${e.sp_def_points??0} / 스 ${e.speed_points??0}`:'노력치 데이터 없음';
+  const cards=Array.from({length:5},(_,i)=>{
+    const nature=natures[i]||natures[0], effort=efforts[i]||efforts[0], item=items[i]||items[0], subject=megaForItem(mon,item)||mon;
+    const final={...subject.stats};
+    if(effort){final.hp+=effort.hp_points||0;final.attack+=effort.attack_points||0;final.defense+=effort.defense_points||0;final.sp_attack+=effort.sp_atk_points||0;final.sp_defense+=effort.sp_def_points||0;final.speed+=effort.speed_points||0;}
+    const up={Attack:'attack',Defense:'defense','Sp. Atk':'sp_attack','Sp. Def':'sp_defense',Speed:'speed'}[nature?.stat_up];
+    const down={Attack:'attack',Defense:'defense','Sp. Atk':'sp_attack','Sp. Def':'sp_defense',Speed:'speed'}[nature?.stat_down];
+    if(up) final[up]=Math.floor(final[up]*1.1); if(down) final[down]=Math.floor(final[down]*.9);
+    const statBars=statKeys.map(([label,key])=>`<div><span>${label}</span><i style="width:${Math.min(100,final[key]/2)}%"></i><b>${final[key]}</b></div>`).join('');
+    return `<article class="sample-card"><h4>${esc(subject.ko)}${subject!==mon?' <small>(메가진화)</small>':''}<small> 조합 ${i+1}</small></h4><p><b>${esc(natureLabel(nature))}</b></p><p>도구: <b>${esc(item?mon.translate.get(item.name)||item.name:'-')}</b></p><small>${esc(effortText(effort))}</small><div class="sample-stats">${statBars}</div><p class="sample-moves">${moves.map(x=>esc(mon.translate.get(x.name)||x.name)).join(' · ')||'기술 데이터 없음'}</p></article>`;
+  }).join('');
+  return `<section class="detail-samples"><h3>대표 실전 샘플</h3><p class="sample-note">성격·노력치·도구의 개별 채용률을 조합한 참고용 5개 예시입니다.</p><div class="sample-grid">${cards}</div></section>`;
+}
+function speedRanking(mon){
+  const list=[...app.mons].sort((a,b)=>(b.stats.speed||0)-(a.stats.speed||0));
+  return `<section class="card"><h3>스피드 순위 · ${mon.stats.speed}</h3><div class="speedlist">${list.map(x=>`<div class="${x===mon?'current':''}">${esc(x.ko)}<span>${x.stats.speed}</span></div>`).join('')}</div></section>`;
 }
 function draw(i){
   const p=panes[i], m=p.mon; if(!m)return; const s=m.stats, total=Object.values(s).reduce((a,b)=>a+b,0), r=rank(m);
@@ -167,11 +191,13 @@ function draw(i){
   const attacks=category(m,'move').slice(0,10).map(x=>monAttack(m,x)).join('')||'<small>공개된 기술 통계가 없습니다.</small>';
   const parentText=m.parent!==m.name ? `기반: ${koreanFor(m.parent)} · ` : '';
   const liveText=m.liveError ? '이 폼의 개별 API 응답이 없어 인덱스 요약값을 표시합니다.' : '현재 시즌 싱글 데이터';
-  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${r===9999?'-':r+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p><small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>종족값 · 합계 ${total}</h3>${statRows}</section><section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
+  const megas=m.kind!=='Mega'?app.mons.filter(x=>x.parent===m.parent&&x.kind==='Mega'):[];
+  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${r===9999?'-':r+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>종족값 · 합계 ${total}</h3>${statRows}</section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
+  p.content.querySelectorAll('.mega-link').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(x=>x.slug===b.dataset.slug),true));
   wireSpeed(p,m);
 }
 function monAttack(m,row){ const t=m.moveTypes.get(row.name); return `<div class="usage-row"><span class="usage-rank">${row.rank}</span><b>${esc(m.translate.get(row.name)||row.name)}</b>${t?typeChip(t):'<span class="type">타입 조회 중</span>'}<span>${esc(row.percentage||'')}</span></div>`; }
-function speedCard(m){ return `<section class="card speedcalc"><h3>스피드 계산기</h3><div class="speed-range"><b class="speed-min">-</b><div class="speedbar"><i class="speedmarker"></i><strong class="speed-current">-</strong></div><b class="speed-max">-</b></div><div class="speed-control"><label>성격보정 <span class="nature-buttons"><button class="nature-button" data-nature="-1">−</button><button class="nature-button selected" data-nature="1">기본</button><button class="nature-button" data-nature="1.1">＋</button></span></label></div><div class="speed-control"><label>스피드 노력치 <input class="speedpoints-range" type="range" min="0" max="32" value="0"><input class="speedpoints-input" type="number" min="0" max="32" value="0"></label></div><div class="battle-speed"><label class="scarf-control"><input class="scarf" type="checkbox"> 구애스카프 ×1.5</label><label>스피드 랭크 <input class="rank-range" type="range" min="-6" max="6" step="1" value="0"><output>0</output></label></div><p class="active-speed">실전 최종 스피드 <strong>-</strong></p></section>`; }
+function speedCard(m){ return `<section class="card speedcalc"><h3>스피드 계산기</h3><div class="speed-range"><b class="speed-min">-</b><div class="speedbar"><i class="speedmarker"></i><strong class="speed-current">-</strong></div><b class="speed-max">-</b></div><div class="speed-control"><label>성격보정 <span class="nature-buttons"><button class="nature-button" data-nature="0.9">−</button><button class="nature-button selected" data-nature="1">기본</button><button class="nature-button" data-nature="1.1">＋</button></span></label></div><div class="speed-control"><label>스피드 노력치 <input class="speedpoints-range" type="range" min="0" max="32" value="0"><input class="speedpoints-input" type="number" min="0" max="32" value="0"></label></div><div class="battle-speed"><label class="scarf-control"><input class="scarf" type="checkbox"> 구애스카프 ×1.5</label><label>스피드 랭크 <input class="rank-range" type="range" min="-6" max="6" step="1" value="0"><output>0</output></label></div><p class="active-speed">실전 최종 스피드 <strong>-</strong></p></section>`; }
 function wireSpeed(p,m){
   const root=p.content.querySelector('.speedcalc'), base=m.stats.speed; let nature=1, points=0;
   const calc=()=>{const min=Math.floor((base+20)*.9), max=Math.floor((base+20+32)*1.1), normal=Math.floor((base+20+points)*nature);const scarf=root.querySelector('.scarf').checked?1.5:1;const stage=+root.querySelector('.rank-range').value; const stageMult=stage>=0?(2+stage)/2:2/(2-stage);const final=Math.floor(normal*scarf*stageMult);const pos=Math.max(4,Math.min(96,(normal-min)/(max-min)*100)); root.querySelector('.speed-min').textContent=min;root.querySelector('.speed-max').textContent=max;root.querySelector('.speedmarker').style.width=`${pos}%`;const marker=root.querySelector('.speed-current');marker.textContent=normal;marker.style.left=`${pos}%`;marker.style.transform='translateX(-50%)';root.querySelector('output').textContent=stage>0?`+${stage}`:stage;root.querySelector('.active-speed strong').textContent=final;};

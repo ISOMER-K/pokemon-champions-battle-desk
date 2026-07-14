@@ -66,7 +66,7 @@ function normalise(index){
       const kind=form.form_kind||'Base';
       if(COSMETIC_FORM_KEEP[entry.name] && COSMETIC_FORM_KEEP[entry.name]!==name) continue;
       const stats={hp:+form.hp||0,attack:+form.attack||0,defense:+form.defense||0,sp_attack:+form.sp_attack||0,sp_defense:+form.sp_defense||0,speed:+form.speed||0};
-      result.push({name, ko:koreanFor(name), parent:kind.startsWith('Mega')?canonicalBase:entry.name, kind, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map()});
+      result.push({name, ko:koreanFor(name), parent:kind.startsWith('Mega')?canonicalBase:entry.name, kind, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map(), abilityDescriptions:new Map()});
     }
   }
   const bestByName=new Map();
@@ -149,8 +149,9 @@ async function loadPoke(kind,name){
   const promise=fetch(`https://pokeapi.co/api/v2/${kind}/${slug(name)}`).then(r=>r.ok?r.json():null).then(data=>{
     if(!data) return {ko:manual||name,type:null};
     const ko=data.names?.find(n=>n.language?.name==='ko')?.name||manual||name;
-    return {ko,type:data.type?.name ? data.type.name[0].toUpperCase()+data.type.name.slice(1) : null};
-  }).catch(()=>({ko:manual||name,type:null}));
+    const flavor=[...(data.flavor_text_entries||[])].reverse().find(entry=>entry.language?.name==='ko')?.flavor_text?.replace(/\s+/g,' ').trim()||'';
+    return {ko,type:data.type?.name ? data.type.name[0].toUpperCase()+data.type.name.slice(1) : null,description:flavor};
+  }).catch(()=>({ko:manual||name,type:null,description:''}));
   app.info.set(key,promise); return promise;
 }
 async function hydrate(mon){
@@ -166,7 +167,7 @@ async function hydrate(mon){
   await Promise.all([
     ...moves.map(x=>loadPoke('move',x.name).then(v=>{mon.translate.set(x.name,v.ko);mon.moveTypes.set(x.name,v.type);})),
     ...items.map(x=>loadPoke('item',x.name).then(v=>mon.translate.set(x.name,v.ko))),
-    ...abilities.map(x=>loadPoke('ability',x.name).then(v=>mon.translate.set(x.name,v.ko))),
+    ...abilities.map(x=>loadPoke('ability',x.name).then(v=>{mon.translate.set(x.name,v.ko);mon.abilityDescriptions.set(x.name,v.description);})),
   ]);
   mon.hydrated=true;
 }
@@ -198,6 +199,10 @@ function usageRows(mon,cat,limit,type=false){
   let rows=category(source,cat);
   rows=rows.slice(0,limit);
   return rows.length?rows.map(x=>`<div class="usage-row"><span class="usage-rank">${x.rank}</span><b>${esc(source.translate.get(x.name)||mon.translate.get(x.name)||ITEM_KO[x.name]||x.name)}</b>${type&&source.moveTypes.get(x.name)?typeChip(source.moveTypes.get(x.name)):''}<span>${esc(x.percentage||'')}</span></div>`).join(''):'<small>현재 공개된 사용 데이터가 없습니다.</small>';
+}
+function abilityRows(mon){
+  const rows=category(mon,'ability').slice(0,5);
+  return rows.length?rows.map(row=>{const name=mon.translate.get(row.name)||row.name, description=mon.abilityDescriptions.get(row.name)||'';const hint=description?` title="${esc(description)}" aria-label="${esc(`${name}: ${description}`)}"`:'';return `<div class="usage-row ability-row"${hint}><span class="usage-rank">${row.rank}</span><b>${esc(name)}</b><span>${esc(row.percentage||'')}</span></div>`;}).join(''):'<small>현재 공개된 특성 사용 데이터가 없습니다.</small>';
 }
 function attackMatchup(mon){
   const moves=category(mon,'move').slice(0,10);
@@ -245,7 +250,7 @@ function draw(i){
   const parentText=m.parent!==m.name ? `기반: ${koreanFor(m.parent)} · ` : '';
   const liveText=m.liveError ? '이 폼의 개별 API 응답이 없어 인덱스 요약값을 표시합니다.' : '현재 시즌 싱글 데이터';
   const megas=!isMega(m)?app.mons.filter(x=>x.parent===m.parent&&isMega(x)):[];
-  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${usageRank===9999?'-':usageRank+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p><section class="ability-section"><b>특성 채용률</b><div class="ability-list">${usageRows(m,'ability',5)}</div></section>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>Champions 기본 능력치 · 합계 ${total}</h3>${statRows}<p class="stat-note">참고 · 원본 종족값 합계 ${rawTotal}</p></section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>공격 상성 · 채용 기술 TOP 10</h3>${attackMatchup(m)}</section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
+  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${usageRank===9999?'-':usageRank+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div><section class="ability-section hero-ability"><b>특성 채용률</b><div class="ability-list">${abilityRows(m)}</div></section></article><div class="grid"><section class="card"><h3>Champions 기본 능력치 · 합계 ${total}</h3>${statRows}<p class="stat-note">참고 · 원본 종족값 합계 ${rawTotal}</p></section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>공격 상성 · 채용 기술 TOP 10</h3>${attackMatchup(m)}</section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
   p.content.querySelectorAll('.mega-link').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(x=>x.slug===b.dataset.slug),true));
   p.content.querySelectorAll('[data-speed-slug]').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(x=>x.slug===b.dataset.speedSlug),true));
   centerSpeedRanking(p); wireSpeed(p,m);

@@ -1,6 +1,6 @@
 # Pokemon Champions Battle Desk — Public Edition
 
-브라우저에서 바로 사용하는 **Pokemon Champions Battle Desk**의 GitHub Pages 배포용 버전입니다. 이 디렉터리는 개인용 로컬 앱인 `../ChampionsBattleWiki`와 의도적으로 분리되어 있습니다.
+브라우저에서 바로 사용하는 **Pokemon Champions Battle Desk**의 GitHub Pages 배포용 버전입니다.
 
 ## 핵심 차이
 

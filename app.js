@@ -168,8 +168,19 @@ function matchup(types){
   return line(4,'danger','4배 약점')+line(2,'danger','2배 약점')+line(1,'','1배')+line(.5,'resist','½배')+line(.25,'resist','¼배')+line(0,'immune','무효');
 }
 function usageRows(mon,cat,limit,type=false){
-  const rows=category(mon,cat).slice(0,limit);
-  return rows.length?rows.map(x=>`<div class="usage-row"><span class="usage-rank">${x.rank}</span><b>${esc(mon.translate.get(x.name)||x.name)}</b>${type&&mon.moveTypes.get(x.name)?typeChip(mon.moveTypes.get(x.name)):''}<span>${esc(x.percentage||'')}</span></div>`).join(''):'<small>현재 공개된 사용 데이터가 없습니다.</small>';
+  const base=isMega(mon)?app.mons.find(x=>x.name===mon.parent):null;
+  // A Mega form is only present after equipping its own Mega Stone.  Show that
+  // required item as 100%, while leaving every non-Mega form's live item
+  // distribution untouched.
+  if(cat==='held_item'&&base){
+    const stone=category(base,'held_item').find(row=>megaForItem(base,row)?.name===mon.name);
+    if(stone) return `<div class="usage-row"><span class="usage-rank">1</span><b>${esc(base.translate.get(stone.name)||mon.translate.get(stone.name)||ITEM_KO[stone.name]||stone.name)}</b><span>100%</span></div>`;
+    return '<small>이 메가진화 폼에 대응하는 메가나이트 데이터를 찾지 못했습니다.</small>';
+  }
+  const source=cat==='held_item'&&base?base:mon;
+  let rows=category(source,cat);
+  rows=rows.slice(0,limit);
+  return rows.length?rows.map(x=>`<div class="usage-row"><span class="usage-rank">${x.rank}</span><b>${esc(source.translate.get(x.name)||mon.translate.get(x.name)||ITEM_KO[x.name]||x.name)}</b>${type&&source.moveTypes.get(x.name)?typeChip(source.moveTypes.get(x.name)):''}<span>${esc(x.percentage||'')}</span></div>`).join(''):'<small>현재 공개된 사용 데이터가 없습니다.</small>';
 }
 function attackMatchup(mon){
   const moves=category(mon,'move').slice(0,10);

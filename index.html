@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pokemon Champions Battle Desk</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><b>Pokemon Champions</b><span>Battle Desk</span><em>LIVE API EDITION</em></div>
+    <nav id="mascots" aria-label="대표 포켓몬 바로가기"></nav>
+    <small id="stamp">라이브 데이터를 불러오는 중…</small>
+  </header>
+  <main id="panes"></main>
+  <footer class="site-footer">
+    <span>© 2026 <a href="https://github.com/ISOMER-K" target="_blank" rel="noreferrer">ISOMER-K</a> · Code: MIT</span>
+    <span>Battle data: <a href="https://championsbattledata.com/" target="_blank" rel="noreferrer">Pokemon Champions Battle Data</a></span>
+    <span>Korean names: <a href="https://pokeapi.co/" target="_blank" rel="noreferrer">PokéAPI</a></span>
+    <span>Unofficial fan project · Pokemon © Nintendo / Creatures / GAME FREAK</span>
+  </footer>
+  <template id="pane-template">
+    <section class="pane">
+      <div class="toolbar"><button class="home-button" type="button">⌂ HOME</button></div>
+      <div class="search"><span class="search-icon" aria-hidden="true">⌕</span><input placeholder="포켓몬 검색 (예: ㄱㄷ, 한카리아스)" autocomplete="off"><button class="clear-search" type="button" aria-label="검색어 지우기" title="검색어 지우기" hidden>×</button><div class="suggestions"></div></div>
+      <div class="content"></div>
+    </section>
+  </template>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -52,12 +52,14 @@ function normalise(index){
   for(const entry of index.pokemon||[]){
     const sum=entry.summary||{}; const allForms=sum.forms?.length ? sum.forms : [sum.primary||{}];
     const battle=battlePart(sum.battleSummary); const fallback=battle.rows||[];
+    const canonicalBase=(allForms.find(f=>(f.form_kind||'Base')==='Base')||{}).form_name||entry.name;
     for(const form of allForms){
       if(!form?.form_name) continue;
       const name=form.form_name;
+      const kind=form.form_kind||'Base';
       if(COSMETIC_FORM_KEEP[entry.name] && COSMETIC_FORM_KEEP[entry.name]!==name) continue;
       const stats={hp:+form.hp||0,attack:+form.attack||0,defense:+form.defense||0,sp_attack:+form.sp_attack||0,sp_defense:+form.sp_defense||0,speed:+form.speed||0};
-      result.push({name, ko:koreanFor(name), parent:entry.name, kind:form.form_kind||'Base', slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map()});
+      result.push({name, ko:koreanFor(name), parent:kind.startsWith('Mega')?canonicalBase:entry.name, kind, slug:form.slug||slug(name), image:form.image_path||sum.sprite, types:form.types||sum.types||[], stats, fallbackRows:fallback, rows:null, hydrated:false, liveError:false, translate:new Map(), moveTypes:new Map()});
     }
   }
   const bestByName=new Map();
@@ -203,7 +205,7 @@ function speedRanking(mon){
   return `<section class="card"><h3>스피드 순위 · ${speed}</h3><div class="speedlist">${list.map(x=>`<div class="${x===mon?'current':''}">${esc(x.ko)}<span>${x.stats.speed}</span></div>`).join('')}</div></section>`;
 }
 function centerSpeedRanking(p){
-  requestAnimationFrame(()=>{const list=p.content.querySelector('.speedlist'), current=list?.querySelector('.current');if(list&&current) list.scrollTop=current.offsetTop-(list.clientHeight-current.offsetHeight)/2;});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const list=p.content.querySelector('.speedlist'),current=list?.querySelector('.current');if(!list||!current)return;const top=current.getBoundingClientRect().top-list.getBoundingClientRect().top+list.scrollTop;list.scrollTop=Math.max(0,top-(list.clientHeight-current.offsetHeight)/2);}));
 }
 function draw(i){
   const p=panes[i], m=p.mon; if(!m)return; const s=m.stats, total=Object.values(s).reduce((a,b)=>a+b,0), rawTotal=rawBaseTotal(m), r=rank(m);

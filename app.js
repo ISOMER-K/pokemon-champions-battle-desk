@@ -162,8 +162,12 @@ async function hydrate(mon){
     mon.rows=part.rows||data.rows||[];
     if(!mon.rows.length) throw Error('empty');
   }catch(err){ mon.liveError=true; mon.rows=mon.fallbackRows; }
-  const moves=category(mon,'move').slice(0,10), items=category(mon,'held_item').slice(0,5);
-  await Promise.all([...moves.map(x=>loadPoke('move',x.name).then(v=>{mon.translate.set(x.name,v.ko);mon.moveTypes.set(x.name,v.type);})),...items.map(x=>loadPoke('item',x.name).then(v=>mon.translate.set(x.name,v.ko)))]);
+  const moves=category(mon,'move').slice(0,10), items=category(mon,'held_item').slice(0,5), abilities=category(mon,'ability').slice(0,5);
+  await Promise.all([
+    ...moves.map(x=>loadPoke('move',x.name).then(v=>{mon.translate.set(x.name,v.ko);mon.moveTypes.set(x.name,v.type);})),
+    ...items.map(x=>loadPoke('item',x.name).then(v=>mon.translate.set(x.name,v.ko))),
+    ...abilities.map(x=>loadPoke('ability',x.name).then(v=>mon.translate.set(x.name,v.ko))),
+  ]);
   mon.hydrated=true;
 }
 async function openMon(i,mon,push=false){
@@ -241,7 +245,7 @@ function draw(i){
   const parentText=m.parent!==m.name ? `기반: ${koreanFor(m.parent)} · ` : '';
   const liveText=m.liveError ? '이 폼의 개별 API 응답이 없어 인덱스 요약값을 표시합니다.' : '현재 시즌 싱글 데이터';
   const megas=!isMega(m)?app.mons.filter(x=>x.parent===m.parent&&isMega(x)):[];
-  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${usageRank===9999?'-':usageRank+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>Champions 기본 능력치 · 합계 ${total}</h3>${statRows}<p class="stat-note">참고 · 원본 종족값 합계 ${rawTotal}</p></section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>공격 상성 · 채용 기술 TOP 10</h3>${attackMatchup(m)}</section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
+  p.content.innerHTML=`<article class="hero"><img class="sprite" src="${asset(m.image)}" alt="${esc(m.ko)}"><div><h2>${esc(m.ko)}</h2><small>${esc(m.name)} · ${esc(parentText)}사용률 ${usageRank===9999?'-':usageRank+'위'}</small><p>${m.types.map(typeChip).join(' ')}</p><section class="ability-section"><b>특성 채용률</b><div class="ability-list">${usageRows(m,'ability',5)}</div></section>${megas.length?`<div class="mega-links">${megas.map(x=>`<button class="mega-link" type="button" data-slug="${esc(x.slug)}">✦ ${esc(x.ko)} 보기</button>`).join('')}</div>`:''}<small>${liveText}</small></div></article><div class="grid"><section class="card"><h3>Champions 기본 능력치 · 합계 ${total}</h3>${statRows}<p class="stat-note">참고 · 원본 종족값 합계 ${rawTotal}</p></section>${speedRanking(m)}<section class="card"><h3>방어 상성</h3><div class="matchup">${matchup(m.types)}</div></section><section class="card"><h3>공격 상성 · 채용 기술 TOP 10</h3>${attackMatchup(m)}</section><section class="card"><h3>채용 기술 TOP 10</h3>${attacks}</section><section class="card"><h3>도구 채용률 TOP 5</h3>${usageRows(m,'held_item',5)}</section>${speedCard(m)}${sample(m)}</div>`;
   p.content.querySelectorAll('.mega-link').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(x=>x.slug===b.dataset.slug),true));
   p.content.querySelectorAll('[data-speed-slug]').forEach(b=>b.onclick=()=>openMon(i,app.mons.find(x=>x.slug===b.dataset.speedSlug),true));
   centerSpeedRanking(p); wireSpeed(p,m);

@@ -2,12 +2,12 @@
 #mobile-pane-switcher{display:none}
 @media(max-width:1119px){
   html,body{min-width:0!important;overflow-x:hidden}
-  header{height:126px!important;padding:0!important;border-radius:0 0 14px 14px!important}
+  header{height:112px!important;padding:0!important;overflow:hidden!important;border-radius:0 0 14px 14px!important}
   header::before{inset:8px 10px 10px!important;border-radius:10px!important}
   header .banner-decor,#mascots,header small,#stamp{display:none!important}
   .brand{top:50%!important;width:100%;transform:translate(-50%,-50%)!important;white-space:nowrap!important}
-  .brand b{font:clamp(18px,5.9vw,27px)/1.15 'Press Start 2P',Jua,sans-serif!important;letter-spacing:-1.4px!important;text-shadow:-2px -2px #24417f,2px -2px #24417f,-2px 2px #24417f,2px 2px #24417f,4px 4px #8B6B4A!important}
-  .brand span{margin-top:9px!important;font:clamp(18px,5.5vw,25px)/1.15 'Press Start 2P',Jua,sans-serif!important;letter-spacing:-.8px!important}
+  .brand b{font:clamp(16px,5.2vw,24px)/1.15 'Press Start 2P',Jua,sans-serif!important;letter-spacing:-1.1px!important;text-shadow:-2px -2px #24417f,2px -2px #24417f,-2px 2px #24417f,2px 2px #24417f,3px 3px #8B6B4A!important}
+  .brand span{margin-top:7px!important;font:clamp(15px,4.7vw,21px)/1.15 'Press Start 2P',Jua,sans-serif!important;letter-spacing:-.6px!important}
   #mobile-pane-switcher{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:9px 10px 8px;background:#F4EBD0;border-bottom:2px solid #3B5BA9}
   #mobile-pane-switcher button{min-height:38px;border:2px solid #3B5BA9;border-radius:8px;background:#FFF9E8;color:#24417F;font:15px Jua,sans-serif;box-shadow:2px 3px 0 #8B6B4A}
   #mobile-pane-switcher button.active{background:#F6C63B;border-color:#24417F;color:#2B2B2B}

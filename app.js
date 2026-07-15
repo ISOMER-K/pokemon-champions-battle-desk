@@ -163,10 +163,10 @@ async function hydrate(mon){
     mon.rows=part.rows||data.rows||[];
     if(!mon.rows.length) throw Error('empty');
   }catch(err){ mon.liveError=true; mon.rows=mon.fallbackRows; }
-  const moves=category(mon,'move').slice(0,10), items=category(mon,'held_item').slice(0,5), abilities=[...new Set([...category(mon,'ability').slice(0,5).map(row=>row.name),...mon.abilities])];
+  const moves=category(mon,'move').slice(0,10), items=category(mon,'held_item').slice(0,5), megaStone=megaStoneRow(mon), itemRows=[...items,...(megaStone?[megaStone]:[])].filter((row,index,all)=>all.findIndex(value=>value.name===row.name)===index), abilities=[...new Set([...category(mon,'ability').slice(0,5).map(row=>row.name),...mon.abilities])];
   await Promise.all([
     ...moves.map(x=>loadPoke('move',x.name).then(v=>{mon.translate.set(x.name,v.ko);mon.moveTypes.set(x.name,v.type);})),
-    ...items.map(x=>loadPoke('item',x.name).then(v=>mon.translate.set(x.name,v.ko))),
+    ...itemRows.map(x=>loadPoke('item',x.name).then(v=>mon.translate.set(x.name,v.ko))),
     ...abilities.map(name=>loadPoke('ability',name).then(v=>{mon.translate.set(name,v.ko);mon.abilityDescriptions.set(name,v.description);})),
   ]);
   mon.hydrated=true;
@@ -214,26 +214,33 @@ function attackMatchup(mon){
 }
 function natureLabel(row){ if(!row?.name) return '성격 데이터 없음'; const plus=STAT_KO[row.stat_up]||row.stat_up||'', minus=STAT_KO[row.stat_down]||row.stat_down||''; return `${NATURE_KO[row.name]||row.name}${plus?` (${minus}↓ ${plus}↑)`:''}`; }
 function megaForItem(mon,item){
-  if(isMega(mon)||!item?.name) return isMega(mon)?mon:null;
-  const root=slug(item.name).replace(/(nite|ite)(-[xy])?$/,'');
+  if(isMega(mon)||!item?.name) return null;
+  const root=slug(item.name).replace(/-/g,'').replace(/(?:nite|ite)[xy]?$/,'');
   let candidates=app.mons.filter(x=>x.parent===mon.parent&&isMega(x));
   if(/\sX$/i.test(item.name)) candidates=candidates.filter(x=>/ X$/i.test(x.name));
   if(/\sY$/i.test(item.name)) candidates=candidates.filter(x=>/ Y$/i.test(x.name));
-  return candidates.find(x=>slug(x.parent).includes(root)||root.includes(slug(x.parent)))||null;
+  const sharedPrefix=(a,b)=>{let index=0;while(index<a.length&&index<b.length&&a[index]===b[index])index++;return index;};
+  return candidates.map(candidate=>({candidate,score:sharedPrefix(root,slug(candidate.parent).replace(/-/g,''))})).sort((a,b)=>b.score-a.score).find(entry=>entry.score>=Math.min(5,root.length))?.candidate||null;
+}
+function megaStoneRow(mon){
+  if(!isMega(mon)) return null;
+  const base=app.mons.find(candidate=>candidate.name===mon.parent);
+  return category(base,'held_item').find(row=>megaForItem(base,row)?.name===mon.name)||null;
 }
 function sample(mon){
-  const natures=category(mon,'stat_alignment').slice(0,5), efforts=category(mon,'stat_points').slice(0,5), items=category(mon,'held_item').slice(0,5), moves=category(mon,'move').slice(0,4);
+  const base=isMega(mon)?app.mons.find(candidate=>candidate.name===mon.parent):null, source=base||mon, stone=megaStoneRow(mon);
+  const natures=category(source,'stat_alignment').slice(0,5), efforts=category(source,'stat_points').slice(0,5), items=isMega(mon)?(stone?[stone]:[]):category(source,'held_item').slice(0,5), moves=category(source,'move').slice(0,4);
   const statKeys=[['HP','hp'],['공격','attack'],['방어','defense'],['특공','sp_attack'],['특방','sp_defense'],['스피드','speed']];
   const effortText=e=>e?`HP ${e.hp_points??0} / 공 ${e.attack_points??0} / 방 ${e.defense_points??0} / 특공 ${e.sp_atk_points??0} / 특방 ${e.sp_def_points??0} / 스 ${e.speed_points??0}`:'노력치 데이터 없음';
   const cards=Array.from({length:5},(_,i)=>{
-    const nature=natures[i]||natures[0], effort=efforts[i]||efforts[0], item=items[i]||items[0], subject=megaForItem(mon,item)||mon;
+    const nature=natures[i]||natures[0], effort=efforts[i]||efforts[0], item=isMega(mon)?stone:(items[i]||items[0]), subject=isMega(mon)?mon:(megaForItem(mon,item)||mon);
     const final={...subject.stats};
     if(effort){final.hp+=effort.hp_points||0;final.attack+=effort.attack_points||0;final.defense+=effort.defense_points||0;final.sp_attack+=effort.sp_atk_points||0;final.sp_defense+=effort.sp_def_points||0;final.speed+=effort.speed_points||0;}
     const up={Attack:'attack',Defense:'defense','Sp. Atk':'sp_attack','Sp. Def':'sp_defense',Speed:'speed'}[nature?.stat_up];
     const down={Attack:'attack',Defense:'defense','Sp. Atk':'sp_attack','Sp. Def':'sp_defense',Speed:'speed'}[nature?.stat_down];
     if(up) final[up]=Math.floor(final[up]*1.1); if(down) final[down]=Math.floor(final[down]*.9);
     const statBars=statKeys.map(([label,key])=>`<div><span>${label}</span><i style="width:${Math.min(100,final[key]/2)}%"></i><b>${final[key]}</b></div>`).join('');
-    return `<article class="sample-card"><h4>${esc(subject.ko)}${subject!==mon?' <small>(메가진화)</small>':''}<small> 조합 ${i+1}</small></h4>${subject.types.map(typeChip).join('')}<p><b>${esc(natureLabel(nature))}</b> · ${esc(item?mon.translate.get(item.name)||item.name:'-')}</p><small>${esc(effortText(effort))}</small><div class="sample-stats">${statBars}</div><div class="sample-moves">${moves.map(x=>esc(mon.translate.get(x.name)||x.name)).join(' · ')||'기술 데이터 없음'}</div></article>`;
+    return `<article class="sample-card"><h4>${esc(subject.ko)}${subject!==mon?' <small>(메가진화)</small>':''}<small> 조합 ${i+1}</small></h4>${subject.types.map(typeChip).join('')}<p><b>${esc(natureLabel(nature))}</b> · ${esc(item?mon.translate.get(item.name)||source.translate.get(item.name)||ITEM_KO[item.name]||item.name:'-')}</p><small>${esc(effortText(effort))}</small><div class="sample-stats">${statBars}</div><div class="sample-moves">${moves.map(x=>esc(mon.translate.get(x.name)||source.translate.get(x.name)||x.name)).join(' · ')||'기술 데이터 없음'}</div></article>`;
   }).join('');
   return `<section class="detail-samples"><h3>대표 실전 샘플</h3><p class="sample-note">※ API가 제공하는 성격·노력치·도구·기술의 개별 채용률을 조합한 참고용 가상 샘플입니다. 실제로 함께 사용된 세트 통계는 제공되지 않습니다.</p><div class="sample-grid">${cards}</div></section>`;
 }
